@@ -8,7 +8,9 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 function verifyAuth(request: Request): boolean {
-  return request.headers.get('authorization') === `Bearer ${process.env.CRON_SECRET}`;
+  const header = request.headers.get('authorization')?.trim();
+  const secret = (process.env.CRON_SECRET ?? '').trim();
+  return !!secret && header === `Bearer ${secret}`;
 }
 
 /**
@@ -26,7 +28,11 @@ function verifyAuth(request: Request): boolean {
  */
 export async function GET(request: Request) {
   if (!verifyAuth(request)) {
-    return new Response('Unauthorized', { status: 401 });
+    const got = request.headers.get('authorization');
+    return NextResponse.json(
+      { error: 'Unauthorized', header: got ?? null, secretSet: !!process.env.CRON_SECRET },
+      { status: 401 }
+    );
   }
 
   const sql = db();

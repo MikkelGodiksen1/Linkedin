@@ -2,9 +2,20 @@ import Link from 'next/link';
 import styles from './page.module.css';
 import db from '@/lib/db';
 
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 type StatusKey = 'not_sent' | 'pending' | 'accepted' | 'error';
 
 async function getStats() {
+  if (!process.env.DATABASE_URL) {
+    return {
+      total: 0,
+      byStatus: { not_sent: 0, pending: 0, accepted: 0, error: 0 },
+      outreachSent: 0,
+      outreachPending: 0,
+    };
+  }
   const sql = db();
   try {
     const totalRows = await sql`SELECT COUNT(*) AS count FROM leads`;

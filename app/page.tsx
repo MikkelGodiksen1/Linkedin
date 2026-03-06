@@ -2,6 +2,7 @@ import Link from 'next/link';
 import styles from './page.module.css';
 import db, { ensureSchema } from '@/lib/db';
 import ManualConnect from './components/ManualConnect';
+import ImportantEmails from './components/ImportantEmails';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -126,6 +127,10 @@ export default async function Page() {
         <div className="card">
           <p className={styles.label}>Manuel kørsel</p>
           <ManualConnect />
+        </div>
+        <div className="card">
+          <p className={styles.label}>Vigtige mails i dag</p>
+          <ImportantEmails />
         </div>
       </div>
 

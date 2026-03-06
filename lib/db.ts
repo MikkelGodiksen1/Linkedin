@@ -54,7 +54,10 @@ export async function ensureSchema() {
       ('ai_sender_context',      ''),
       ('ai_enabled',             'true'),
       ('manual_outreach_message',''),
-      ('linkedin_li_at',         '')
+      ('linkedin_li_at',         ''),
+      ('gmail_client_id',        ''),
+      ('gmail_client_secret',    ''),
+      ('gmail_refresh_token',    '')
     ON CONFLICT (key) DO NOTHING
   `;
 }

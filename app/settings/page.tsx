@@ -13,6 +13,9 @@ type SettingsState = {
   ai_enabled: string;
   manual_outreach_message: string;
   linkedin_li_at: string;
+  gmail_client_id: string;
+  gmail_client_secret: string;
+  gmail_refresh_token: string;
 };
 
 const initialState: SettingsState = {
@@ -26,6 +29,9 @@ const initialState: SettingsState = {
   ai_enabled: 'true',
   manual_outreach_message: '',
   linkedin_li_at: '',
+  gmail_client_id: '',
+  gmail_client_secret: '',
+  gmail_refresh_token: '',
 };
 
 export default function SettingsPage() {
@@ -222,6 +228,37 @@ export default function SettingsPage() {
           />
           <div className={styles.hint}>
             Hent fra Chrome → F12 → Application → Cookies → linkedin.com → li_at
+          </div>
+        </section>
+
+        <section className="card">
+          <h3 className="section-title">📧 Gmail integration</h3>
+          <p className="section-sub">
+            Forbind Gmail for at se vigtige emails på dashboardet. Kræver en Google Cloud OAuth 2.0 klient.
+          </p>
+          <label>Client ID</label>
+          <input
+            value={settings.gmail_client_id}
+            onChange={handleChange('gmail_client_id')}
+            placeholder="123456789-abc.apps.googleusercontent.com"
+          />
+          <label>Client Secret</label>
+          <input
+            type="password"
+            value={settings.gmail_client_secret}
+            onChange={handleChange('gmail_client_secret')}
+            placeholder="GOCSPX-..."
+          />
+          <label>Refresh Token</label>
+          <input
+            type="password"
+            value={settings.gmail_refresh_token}
+            onChange={handleChange('gmail_refresh_token')}
+            placeholder="1//0g..."
+          />
+          <div className={styles.hint}>
+            Opret via Google Cloud Console → APIs & Services → Credentials → OAuth 2.0.
+            Brug OAuth Playground til at generere refresh token med scope: gmail.readonly
           </div>
         </section>
       </div>

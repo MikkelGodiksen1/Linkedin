@@ -99,3 +99,66 @@ function fallbackMessage(name: string, company: string, servicesList: string): s
   const firstService = servicesList.split(',').map(s => s.trim()).filter(Boolean)[0] ?? 'hjemmesider';
   return `Hej ${name || 'der'}! Fedt at connecte. Jeg hjælper virksomheder med ${firstService}. Hvad er jeres største digitale fokus i ${company || 'virksomheden'} lige nu?`;
 }
+
+// ─── Email klassificering ─────────────────────────────────────────────────────
+
+export interface ImportantEmail {
+  id: string;
+  from: string;
+  subject: string;
+  snippet: string;
+  date: string;
+  reason: string; // hvorfor den er vigtig
+}
+
+/**
+ * Bruger AI til at identificere vigtige emails fra dagens indbakke.
+ * Returnerer kun dem der er markeret vigtige.
+ */
+export async function classifyImportantEmails(
+  emails: { id: string; from: string; subject: string; snippet: string; date: string }[]
+): Promise<ImportantEmail[]> {
+  if (emails.length === 0) return [];
+
+  const systemPrompt = `Du er en dansk forretningsassistent. Du skal gennemgå en liste af emails og finde de vigtige.
+
+En email er vigtig hvis den:
+- Er et svar fra en potentiel kunde eller lead
+- Handler om et forretningstilbud, samarbejde eller kontrakt
+- Er en kundehenvendelse eller support-spørgsmål der kræver handling
+- Er urgent (deadline, betaling, juridisk)
+- Er fra en partner, investor eller vigtig kontakt
+
+Ignorer: nyhedsbreve, marketing-emails, notifikationer, automatiske bekræftelser.
+
+Svar UDELUKKENDE med JSON array (ingen markdown, ingen forklaring):
+[{"id":"...", "reason":"kort dansk begrundelse"}, ...]
+
+Hvis ingen emails er vigtige, svar med: []`;
+
+  const emailList = emails
+    .map((e, i) => `${i + 1}. ID:${e.id} | Fra:${e.from} | Emne:${e.subject} | Preview:${e.snippet.slice(0, 120)}`)
+    .join('\n');
+
+  const userPrompt = `Emails fra i dag:\n${emailList}`;
+
+  const raw = await callOpenRouter(systemPrompt, userPrompt);
+  if (!raw) return [];
+
+  try {
+    // Fjern evt. markdown code blocks
+    const cleaned = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    const classified = JSON.parse(cleaned) as { id: string; reason: string }[];
+
+    if (!Array.isArray(classified)) return [];
+
+    return classified.flatMap(c => {
+      const email = emails.find(e => e.id === c.id);
+      if (!email) return [];
+      return [{ ...email, reason: c.reason }];
+    });
+  } catch {
+    console.error('classifyImportantEmails: JSON parse fejl', raw);
+    return [];
+  }
+}

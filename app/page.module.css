@@ -80,6 +80,24 @@
   gap: 8px;
 }
 
+.noticeSuccess,
+.noticeError {
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 14px;
+  border: 1px solid var(--border);
+}
+
+.noticeSuccess {
+  background: rgba(34, 197, 94, 0.12);
+  color: #166534;
+}
+
+.noticeError {
+  background: rgba(239, 68, 68, 0.12);
+  color: #991b1b;
+}
+
 .table {
   display: flex;
   flex-direction: column;

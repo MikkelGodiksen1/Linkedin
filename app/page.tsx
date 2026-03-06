@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import styles from './page.module.css';
 import db from '@/lib/db';
-import { revalidatePath } from 'next/cache';
+import ManualConnect from './components/ManualConnect';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -124,10 +124,7 @@ export default async function Page() {
         </div>
         <div className="card">
           <p className={styles.label}>Manuel kørsel</p>
-          <form action={runConnectBatch} className={styles.actionForm}>
-            <button type="submit" className={styles.primary}>Kør 10 connect</button>
-            <small>Trigger samme flow som cron kl. 09:00 (sender invites til næste batch).</small>
-          </form>
+          <ManualConnect />
         </div>
       </div>
 
@@ -181,27 +178,4 @@ async function getRecentConnections() {
   }
 }
 
-async function runConnectBatch() {
-  'use server';
-  const secret = process.env.CRON_SECRET;
-  const host = process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : 'http://localhost:3000';
-
-  if (!secret) {
-    console.error('CRON_SECRET missing; cannot trigger connect batch');
-    return;
-  }
-
-  try {
-    await fetch(`${host}/api/cron/send-connections`, {
-      method: 'GET',
-      headers: { Authorization: `Bearer ${secret}` },
-      cache: 'no-store',
-    });
-  } catch (err) {
-    console.error('manual connect batch failed', err);
-  }
-
-  revalidatePath('/');
-}
+// no-op placeholder; manual connect is handled client-side via /api/manual-connect

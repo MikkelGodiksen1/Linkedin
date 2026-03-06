@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
-import { DEFAULT_SETTINGS, saveSetting } from '@/lib/settings';
+import { DEFAULT_SETTINGS, ensureSettingsTable, getSettings, saveSetting } from '@/lib/settings';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -12,12 +12,8 @@ export async function GET() {
       { status: 500 }
     );
   }
-  const sql = db();
-  const rows = await sql`SELECT key, value FROM settings ORDER BY key ASC`;
-  const settings: Record<string, string> = {};
-  for (const row of rows) {
-    settings[row.key as string] = (row.value as string) ?? '';
-  }
+  await ensureSettingsTable();
+  const settings = await getSettings(Object.keys(DEFAULT_SETTINGS));
   return NextResponse.json(settings);
 }
 
@@ -30,6 +26,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
   }
 
+  await ensureSettingsTable();
   const entries = Object.entries(body as Record<string, unknown>);
   for (const [key, value] of entries) {
     if (typeof key !== 'string') continue;

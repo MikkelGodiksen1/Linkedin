@@ -15,7 +15,7 @@ export const DEFAULT_SETTINGS: SettingsRecord = {
   linkedin_li_at: '',
 };
 
-async function ensureSettingsTable() {
+export async function ensureSettingsTable() {
   const sql = db();
   await sql`
     CREATE TABLE IF NOT EXISTS settings (

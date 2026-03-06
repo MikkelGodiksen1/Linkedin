@@ -111,7 +111,7 @@ export async function GET(request: Request) {
   }
 }
 
-function buildInvitation(template: string, lead: { name: string; company: string; title: string }): string {
+export function buildInvitation(template: string, lead: { name: string; company: string; title: string }): string {
   const trimmedTemplate = template.slice(0, 300); // LinkedIn limit
   return trimmedTemplate
     .replace(/{{\s*navn\s*}}/gi, lead.name || 'der')

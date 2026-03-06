@@ -197,6 +197,7 @@ async function runConnectBatch() {
     await fetch(`${host}/api/cron/send-connections`, {
       method: 'GET',
       headers: { Authorization: `Bearer ${secret}` },
+      cache: 'no-store',
     });
   } catch (err) {
     console.error('manual connect batch failed', err);

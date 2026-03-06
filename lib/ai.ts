@@ -1,6 +1,7 @@
-import Anthropic from '@anthropic-ai/sdk';
-
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || process.env.OPENROUTER_SECRET;
+const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL ?? 'anthropic/claude-3.5-sonnet';
+const OPENROUTER_BASE_URL = process.env.OPENROUTER_BASE_URL ?? 'https://openrouter.ai/api/v1/chat/completions';
+const OPENROUTER_REFERRER = process.env.OPENROUTER_REFERRER ?? 'https://linkedin-rouge.vercel.app';
 
 const BASE_SYSTEM = `Du er en dansk salgsprofessionel der skriver korte, autentiske LinkedIn DMs.
 
@@ -22,8 +23,15 @@ export async function generateOutreachMessage(params: {
 }): Promise<string> {
   const { name, title, company, recentPost, services, senderContext } = params;
 
-  const servicesList = (services || '').trim() || 'Ny hjemmeside/redesign, Automatiseringer, CRM system, LinkedIn ads, Meta ads';
-  const servicesLines = servicesList.split(',').map(s => s.trim()).filter(Boolean).map(s => `- ${s}`).join('\n');
+  const servicesList =
+    (services || '').trim() ||
+    'Ny hjemmeside/redesign, Automatiseringer, CRM system, LinkedIn ads, Meta ads';
+  const servicesLines = servicesList
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean)
+    .map(s => `- ${s}`)
+    .join('\n');
 
   const systemPrompt = `${BASE_SYSTEM}
 
@@ -39,23 +47,52 @@ ${senderContext ? `\nKontekst om dig/dit firma: ${senderContext}` : ''}`;
     title ? `, der arbejder som ${title}` : ''
   }${company ? ` hos ${company}` : ''}. ${context}`;
 
-  try {
-    const message = await client.messages.create({
-      model: 'claude-opus-4-6',
-      max_tokens: 200,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userPrompt }],
-    });
-
-    const content = message.content[0];
-    if (content.type === 'text' && content.text) {
-      return content.text;
-    }
-  } catch (err) {
-    console.error('Claude API error:', err);
-  }
+  const aiResponse = await callOpenRouter(systemPrompt, userPrompt);
+  if (aiResponse) return aiResponse;
 
   return fallbackMessage(name, company, servicesList);
+}
+
+async function callOpenRouter(system: string, user: string): Promise<string | null> {
+  if (!OPENROUTER_API_KEY) {
+    console.warn('OPENROUTER_API_KEY missing; falling back to template message');
+    return null;
+  }
+
+  try {
+    const res = await fetch(OPENROUTER_BASE_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${OPENROUTER_API_KEY}`,
+        'HTTP-Referer': OPENROUTER_REFERRER,
+        'X-Title': 'LinkedIn Automation',
+      },
+      body: JSON.stringify({
+        model: OPENROUTER_MODEL,
+        messages: [
+          { role: 'system', content: system },
+          { role: 'user', content: user },
+        ],
+        max_tokens: 200,
+      }),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error('OpenRouter error', res.status, errText);
+      return null;
+    }
+
+    const data = (await res.json()) as {
+      choices?: { message?: { content?: string } }[];
+    };
+    const text = data.choices?.[0]?.message?.content;
+    return text ?? null;
+  } catch (err) {
+    console.error('OpenRouter fetch error', err);
+    return null;
+  }
 }
 
 function fallbackMessage(name: string, company: string, servicesList: string): string {

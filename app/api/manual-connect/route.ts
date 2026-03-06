@@ -23,7 +23,7 @@ export async function GET() {
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
       return NextResponse.json(
-        { error: data?.error || `Cron failed (${res.status})` },
+        { error: data?.error || `Cron failed (${res.status})`, debug: data },
         { status: res.status }
       );
     }

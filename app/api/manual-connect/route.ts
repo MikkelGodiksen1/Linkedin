@@ -81,6 +81,7 @@ export async function GET() {
     });
   } catch (err) {
     console.error('manual-connect route error', err);
-    return NextResponse.json({ error: 'Server error' }, { status: 500 });
+    const msg = err instanceof Error ? err.message : 'Server error';
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

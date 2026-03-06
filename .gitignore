@@ -13,6 +13,9 @@ out/
 # Vercel
 .vercel
 
+# TypeScript
+*.tsbuildinfo
+
 # System files
 .DS_Store
 *.log

@@ -84,10 +84,10 @@ export async function launchSearchExport(
   keywords: string,
   location: string,
   opts?: { limit?: number; sessionCookie?: string }
-): Promise<void> {
+): Promise<{ containerId?: string }> {
   const agentId = process.env.PHANTOM_SEARCH_EXPORT_ID!;
   const sessionCookie = opts?.sessionCookie ?? process.env.LINKEDIN_LI_AT;
-  await launchAgent(agentId, {
+  return launchAgent(agentId, {
     sessionCookie,
     search: keywords,
     location,

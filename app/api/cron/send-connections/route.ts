@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { harvestNetworkBoosterResults, launchNetworkBooster } from '@/lib/phantombuster';
 import { getSettings } from '@/lib/settings';
+import { buildInvitation } from '@/lib/invitation';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { harvestNetworkBoosterResults, launchNetworkBooster } from '@/lib/phantombuster';
+import { getSettings } from '@/lib/settings';
 
 function verifyAuth(request: Request): boolean {
   return request.headers.get('authorization') === `Bearer ${process.env.CRON_SECRET}`;
@@ -18,6 +19,16 @@ export async function GET(request: Request) {
   }
 
   const sql = db();
+  const settings = await getSettings([
+    'invitation_message',
+    'daily_limit',
+    'linkedin_li_at',
+  ]);
+
+  const dailyLimit = Math.min(25, Math.max(1, Number(settings.daily_limit || 10)));
+  const invitationTemplate =
+    settings.invitation_message ||
+    'Hej {{navn}}, jeg arbejder med hjemmesider, automatiseringer og LinkedIn/Meta ads. Ville være godt at connecte{{virksomhed}}!';
 
   // ── Step 1: Harvest gårsdagens connection requests ────────────────────────
   const boosterResults = await harvestNetworkBoosterResults();
@@ -58,16 +69,22 @@ export async function GET(request: Request) {
     FROM leads
     WHERE connection_status = 'not_sent'
     ORDER BY created_at ASC
-    LIMIT 10
+    LIMIT ${dailyLimit}
   `;
 
   if (leads.length > 0) {
-    await launchNetworkBooster(
-      leads.map(l => ({
-        linkedin_url: l.linkedin_url as string,
+    const leadsWithMessage = leads.map(l => ({
+      linkedin_url: l.linkedin_url as string,
+      message: buildInvitation(invitationTemplate, {
         name: (l.name as string) ?? '',
         company: (l.company as string) ?? '',
-      }))
+        title: (l.title as string) ?? '',
+      }),
+    }));
+
+    await launchNetworkBooster(
+      leadsWithMessage,
+      { sessionCookie: settings.linkedin_li_at || undefined }
     );
   }
 
@@ -75,5 +92,14 @@ export async function GET(request: Request) {
   return NextResponse.json({
     harvested: boosterResults.length,
     launched: leads.length,
+    dailyLimit,
   });
+}
+
+function buildInvitation(template: string, lead: { name: string; company: string; title: string }): string {
+  const trimmedTemplate = template.slice(0, 300); // LinkedIn limit
+  return trimmedTemplate
+    .replace(/{{\s*navn\s*}}/gi, lead.name || 'der')
+    .replace(/{{\s*virksomhed\s*}}/gi, lead.company || '')
+    .replace(/{{\s*titel\s*}}/gi, lead.title || '');
 }

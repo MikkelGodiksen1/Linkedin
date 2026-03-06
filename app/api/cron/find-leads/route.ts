@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { harvestSearchResults, launchSearchExport } from '@/lib/phantombuster';
+import { getSettings } from '@/lib/settings';
 
 function verifyAuth(request: Request): boolean {
   return request.headers.get('authorization') === `Bearer ${process.env.CRON_SECRET}`;
@@ -18,6 +19,14 @@ export async function GET(request: Request) {
   }
 
   const sql = db();
+  const settings = await getSettings([
+    'search_keywords',
+    'search_location',
+    'daily_limit',
+    'linkedin_li_at',
+  ]);
+
+  const dailyLimit = Math.min(25, Math.max(1, Number(settings.daily_limit || 10)));
 
   // ── Step 1: Harvest gårsdagens søgeresultater ─────────────────────────────
   const leads = await harvestSearchResults();
@@ -37,14 +46,17 @@ export async function GET(request: Request) {
   }
 
   // ── Step 2: Launch ny søgning til i morgen ────────────────────────────────
-  const keywords = process.env.LEAD_SEARCH_KEYWORDS ?? 'CEO,founder,ejer,direktør';
-  const location = process.env.LEAD_SEARCH_LOCATION ?? 'Denmark';
+  const keywords = settings.search_keywords || 'CEO,founder,ejer,direktør';
+  const location = settings.search_location || 'Denmark';
 
   // Kør med hvert keyword (Search Export tager én søgefrase ad gangen)
   const keywordList = keywords.split(',').map(k => k.trim()).filter(Boolean);
   const keyword = keywordList[new Date().getDay() % keywordList.length]; // rotér keywords dagligt
-  await launchSearchExport(keyword, location);
+  await launchSearchExport(keyword, location, {
+    limit: dailyLimit,
+    sessionCookie: settings.linkedin_li_at || undefined,
+  });
 
   console.log(`find-leads: harvested ${leads.length} → added ${added} new. Launched search: "${keyword}"`);
-  return NextResponse.json({ harvested: leads.length, added, launchedKeyword: keyword });
+  return NextResponse.json({ harvested: leads.length, added, launchedKeyword: keyword, dailyLimit });
 }

@@ -78,13 +78,18 @@ export interface MessageResult {
  * Starter LinkedIn Search Export phantom.
  * Resultater hentes i harvestSearchResults() næste dag.
  */
-export async function launchSearchExport(keywords: string, location: string): Promise<void> {
+export async function launchSearchExport(
+  keywords: string,
+  location: string,
+  opts?: { limit?: number; sessionCookie?: string }
+): Promise<void> {
   const agentId = process.env.PHANTOM_SEARCH_EXPORT_ID!;
+  const sessionCookie = opts?.sessionCookie ?? process.env.LINKEDIN_LI_AT;
   await launchAgent(agentId, {
-    sessionCookie: process.env.LINKEDIN_LI_AT,
+    sessionCookie,
     search: keywords,
     location,
-    numberOfProfiles: 20,
+    numberOfProfiles: opts?.limit ?? 20,
     csvName: 'search-results',
   });
 }
@@ -120,18 +125,20 @@ export async function harvestSearchResults(): Promise<SearchLead[]> {
  * Resultater hentes i harvestNetworkBoosterResults() næste dag.
  */
 export async function launchNetworkBooster(
-  leads: { linkedin_url: string; name: string; company: string }[]
+  leads: { linkedin_url: string; message: string }[],
+  opts?: { sessionCookie?: string }
 ): Promise<void> {
   const agentId = process.env.PHANTOM_NETWORK_BOOSTER_ID!;
+  const sessionCookie = opts?.sessionCookie ?? process.env.LINKEDIN_LI_AT;
 
   // Phantombuster Network Booster tager en CSV-kompatibel liste
   const spreadsheetData = leads.map(l => ({
     linkedInUrl: l.linkedin_url,
-    message: `Hej ${l.name || 'der'}, jeg arbejder med hjemmesider, automatiseringer og LinkedIn/Meta ads. Ville være godt at connecte${l.company ? ` og høre mere om ${l.company}` : ''}!`,
+    message: l.message,
   }));
 
   await launchAgent(agentId, {
-    sessionCookie: process.env.LINKEDIN_LI_AT,
+    sessionCookie,
     spreadsheet: spreadsheetData,
     numberOfAddsPerLaunch: leads.length,
     waitDuration: 30, // sekunder mellem connection requests
@@ -170,9 +177,11 @@ export async function harvestNetworkBoosterResults(): Promise<ConnectionResult[]
  * Fejlede beskeder = person har ikke accepteret endnu (stadig pending).
  */
 export async function launchMessageSender(
-  leads: { linkedin_url: string; message: string }[]
+  leads: { linkedin_url: string; message: string }[],
+  opts?: { sessionCookie?: string }
 ): Promise<void> {
   const agentId = process.env.PHANTOM_MESSAGE_SENDER_ID!;
+  const sessionCookie = opts?.sessionCookie ?? process.env.LINKEDIN_LI_AT;
 
   const spreadsheetData = leads.map(l => ({
     linkedInUrl: l.linkedin_url,
@@ -180,7 +189,7 @@ export async function launchMessageSender(
   }));
 
   await launchAgent(agentId, {
-    sessionCookie: process.env.LINKEDIN_LI_AT,
+    sessionCookie,
     spreadsheet: spreadsheetData,
     sendOnlyIfNoPreviousMessages: true, // undgå dobbelt-besked
     csvName: 'message-sender-results',

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { harvestMessageSenderResults, launchMessageSender } from '@/lib/phantombuster';
 import { generateOutreachMessage } from '@/lib/ai';
+import { getSettings } from '@/lib/settings';
 
 function verifyAuth(request: Request): boolean {
   return request.headers.get('authorization') === `Bearer ${process.env.CRON_SECRET}`;
@@ -26,6 +27,14 @@ export async function GET(request: Request) {
   }
 
   const sql = db();
+  const settings = await getSettings([
+    'ai_enabled',
+    'ai_services',
+    'ai_sender_context',
+    'manual_outreach_message',
+    'linkedin_li_at',
+  ]);
+  const aiEnabled = (settings.ai_enabled || 'true') === 'true';
 
   // ── Step 1: Harvest gårsdagens Message Sender resultater ──────────────────
   const msgResults = await harvestMessageSenderResults();
@@ -69,11 +78,19 @@ export async function GET(request: Request) {
   const leadsWithMessages: { linkedin_url: string; message: string }[] = [];
 
   for (const lead of pending) {
-    const message = await generateOutreachMessage({
-      name: (lead.name as string) ?? '',
-      title: (lead.title as string) ?? '',
-      company: (lead.company as string) ?? '',
-    });
+    const name = (lead.name as string) ?? '';
+    const title = (lead.title as string) ?? '';
+    const company = (lead.company as string) ?? '';
+
+    const message = aiEnabled
+      ? await generateOutreachMessage({
+          name,
+          title,
+          company,
+          services: settings.ai_services,
+          senderContext: settings.ai_sender_context,
+        })
+      : buildManualOutreach(settings.manual_outreach_message, { name, title, company });
 
     leadsWithMessages.push({
       linkedin_url: lead.linkedin_url as string,
@@ -89,8 +106,16 @@ export async function GET(request: Request) {
   }
 
   // ── Step 3: Launch Message Sender til i morgen ────────────────────────────
-  await launchMessageSender(leadsWithMessages);
+  await launchMessageSender(leadsWithMessages, { sessionCookie: settings.linkedin_li_at || undefined });
 
   console.log(`check-connections: ${accepted} accepted. Launched message sender for ${leadsWithMessages.length} leads`);
   return NextResponse.json({ accepted, launched: leadsWithMessages.length });
+}
+
+function buildManualOutreach(template: string, lead: { name: string; title: string; company: string }): string {
+  const base = template || 'Hej {{navn}}, tak for connect. Hvad fokuserer I mest på i {{virksomhed}} lige nu?';
+  return base
+    .replace(/{{\s*navn\s*}}/gi, lead.name || 'der')
+    .replace(/{{\s*titel\s*}}/gi, lead.title || '')
+    .replace(/{{\s*virksomhed\s*}}/gi, lead.company || '');
 }

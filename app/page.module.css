@@ -74,6 +74,47 @@
   color: var(--danger);
 }
 
+.actionForm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.table {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.thead, .row {
+  display: grid;
+  grid-template-columns: 1.5fr 1.2fr 0.8fr 1.1fr;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.row:last-of-type {
+  border-bottom: none;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 10px;
+  background: rgba(14, 165, 233, 0.12);
+  color: var(--text);
+  font-size: 13px;
+  width: fit-content;
+}
+
+.empty {
+  color: var(--muted);
+  padding: 8px 0;
+}
+
 @media (max-width: 640px) {
   .actions {
     flex-direction: column;

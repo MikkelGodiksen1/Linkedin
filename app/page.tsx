@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import styles from './page.module.css';
 import db from '@/lib/db';
+import { revalidatePath } from 'next/cache';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -62,6 +63,7 @@ async function getStats() {
 
 export default async function Page() {
   const stats = await getStats();
+  const recent = await getRecentConnections();
 
   return (
     <div className={styles.grid}>
@@ -120,7 +122,85 @@ export default async function Page() {
           </div>
           <small>DM sendes først efter accept.</small>
         </div>
+        <div className="card">
+          <p className={styles.label}>Manuel kørsel</p>
+          <form action={runConnectBatch} className={styles.actionForm}>
+            <button type="submit" className={styles.primary}>Kør 10 connect</button>
+            <small>Trigger samme flow som cron kl. 09:00 (sender invites til næste batch).</small>
+          </form>
+        </div>
+      </div>
+
+      <div className="card">
+        <p className={styles.label}>Seneste invites</p>
+        <div className={styles.table}>
+          <div className={styles.thead}>
+            <span>Navn</span>
+            <span>Company</span>
+            <span>Status</span>
+            <span>Sendt</span>
+          </div>
+          {recent.length === 0 && <div className={styles.empty}>Ingen udsendte invites endnu.</div>}
+          {recent.map(item => (
+            <div key={item.linkedin_url} className={styles.row}>
+              <span>{item.name || 'Ukendt'}</span>
+              <span>{item.company || '—'}</span>
+              <span className={styles.badge}>{item.connection_status}</span>
+              <span>{item.invitation_sent_at ?? '—'}</span>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
+}
+
+async function getRecentConnections() {
+  if (!process.env.DATABASE_URL) return [];
+  const sql = db();
+  try {
+    const rows = await sql`
+      SELECT name, company, connection_status, invitation_sent_at, linkedin_url
+      FROM leads
+      WHERE invitation_sent_at IS NOT NULL
+      ORDER BY invitation_sent_at DESC
+      LIMIT 25
+    `;
+    return rows.map(r => ({
+      name: (r.name as string) ?? '',
+      company: (r.company as string) ?? '',
+      connection_status: (r.connection_status as string) ?? '',
+      invitation_sent_at: r.invitation_sent_at
+        ? new Date(r.invitation_sent_at as string).toLocaleString('da-DK')
+        : null,
+      linkedin_url: (r.linkedin_url as string) ?? '',
+    }));
+  } catch (err) {
+    console.error('recent connections error', err);
+    return [];
+  }
+}
+
+async function runConnectBatch() {
+  'use server';
+  const secret = process.env.CRON_SECRET;
+  const host = process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : 'http://localhost:3000';
+
+  if (!secret) {
+    console.error('CRON_SECRET missing; cannot trigger connect batch');
+    return;
+  }
+
+  try {
+    await fetch(`${host}/api/cron/send-connections`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${secret}` },
+    });
+  } catch (err) {
+    console.error('manual connect batch failed', err);
+  }
+
+  revalidatePath('/');
 }

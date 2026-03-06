@@ -12,9 +12,15 @@ export async function GET() {
       { status: 500 }
     );
   }
-  await ensureSettingsTable();
-  const settings = await getSettings(Object.keys(DEFAULT_SETTINGS));
-  return NextResponse.json(settings);
+  try {
+    await ensureSettingsTable();
+    const settings = await getSettings(Object.keys(DEFAULT_SETTINGS));
+    return NextResponse.json(settings);
+  } catch (err) {
+    console.error('GET /api/settings error', err);
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }
 
 export async function POST(request: Request) {
@@ -26,12 +32,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });
   }
 
-  await ensureSettingsTable();
-  const entries = Object.entries(body as Record<string, unknown>);
-  for (const [key, value] of entries) {
-    if (typeof key !== 'string') continue;
-    await saveSetting(key, String(value ?? ''));
-  }
+  try {
+    await ensureSettingsTable();
+    const entries = Object.entries(body as Record<string, unknown>);
+    for (const [key, value] of entries) {
+      if (typeof key !== 'string') continue;
+      await saveSetting(key, String(value ?? ''));
+    }
 
-  return NextResponse.json({ updated: entries.length });
+    return NextResponse.json({ updated: entries.length });
+  } catch (err) {
+    console.error('POST /api/settings error', err);
+    const message = err instanceof Error ? err.message : 'Unknown error';
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }

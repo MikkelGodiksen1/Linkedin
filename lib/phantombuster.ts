@@ -12,8 +12,10 @@
 const PB_API_BASE = 'https://api.phantombuster.com/api';
 
 function pbHeaders() {
+  const key = process.env.PHANTOMBUSTER_API_KEY;
+  if (!key) throw new Error('PHANTOMBUSTER_API_KEY is not set');
   return {
-    'X-Phantombuster-Key': process.env.PHANTOMBUSTER_API_KEY!,
+    'X-Phantombuster-Key': key,
     'Content-Type': 'application/json',
   };
 }

@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import db from '@/lib/db';
 import { DEFAULT_SETTINGS, saveSetting } from '@/lib/settings';
 
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   if (!process.env.DATABASE_URL) {
     return NextResponse.json(

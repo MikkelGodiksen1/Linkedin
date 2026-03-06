@@ -1,8 +1,14 @@
 import { NextResponse } from 'next/server';
 import db from '@/lib/db';
-import { saveSetting } from '@/lib/settings';
+import { DEFAULT_SETTINGS, saveSetting } from '@/lib/settings';
 
 export async function GET() {
+  if (!process.env.DATABASE_URL) {
+    return NextResponse.json(
+      { error: 'DATABASE_URL missing on server', settings: DEFAULT_SETTINGS },
+      { status: 500 }
+    );
+  }
   const sql = db();
   const rows = await sql`SELECT key, value FROM settings ORDER BY key ASC`;
   const settings: Record<string, string> = {};
@@ -13,6 +19,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  if (!process.env.DATABASE_URL) {
+    return NextResponse.json({ error: 'DATABASE_URL missing on server' }, { status: 500 });
+  }
   const body = await request.json().catch(() => null);
   if (!body || typeof body !== 'object') {
     return NextResponse.json({ error: 'Invalid payload' }, { status: 400 });

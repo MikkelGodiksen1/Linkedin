@@ -113,7 +113,7 @@ export async function GET() {
     const location = settings.search_location || 'Denmark';
     const keywordList = keywords.split(',').map((k: string) => k.trim()).filter(Boolean);
     const keyword = keywordList[new Date().getDay() % keywordList.length];
-    await launchSearchExport(keyword, location, {
+    const searchResult = await launchSearchExport(keyword, location, {
       limit: dailyLimit,
       sessionCookie: settings.linkedin_li_at || undefined,
     });
@@ -123,7 +123,9 @@ export async function GET() {
       harvested: boosterResults.length,
       launched: leads.length,
       dailyLimit,
-      nextSearch: keyword,
+      searchStarted: !!searchResult.containerId,
+      searchContainerId: searchResult.containerId ?? null,
+      searchKeyword: keyword,
     });
   } catch (err) {
     console.error('manual-connect route error', err);

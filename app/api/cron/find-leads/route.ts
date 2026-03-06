@@ -3,6 +3,9 @@ import db from '@/lib/db';
 import { harvestSearchResults, launchSearchExport } from '@/lib/phantombuster';
 import { getSettings } from '@/lib/settings';
 
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 function verifyAuth(request: Request): boolean {
   return request.headers.get('authorization') === `Bearer ${process.env.CRON_SECRET}`;
 }

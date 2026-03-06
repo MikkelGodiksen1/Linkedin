@@ -4,6 +4,9 @@ import { harvestMessageSenderResults, launchMessageSender } from '@/lib/phantomb
 import { generateOutreachMessage } from '@/lib/ai';
 import { getSettings } from '@/lib/settings';
 
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 function verifyAuth(request: Request): boolean {
   return request.headers.get('authorization') === `Bearer ${process.env.CRON_SECRET}`;
 }

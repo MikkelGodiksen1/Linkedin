@@ -93,10 +93,9 @@ export async function GET(request: Request) {
         }),
       }));
 
-      await launchNetworkBooster(
-        leadsWithMessage,
-        { sessionCookie: settings.linkedin_li_at || undefined }
-      );
+      await launchNetworkBooster(leadsWithMessage, {
+        sessionCookie: settings.linkedin_li_at || undefined,
+      });
     }
 
     console.log(`send-connections: harvested ${boosterResults.length} results, launched ${leads.length} new`);
@@ -110,12 +109,4 @@ export async function GET(request: Request) {
     const msg = err instanceof Error ? err.message : 'Unknown error';
     return NextResponse.json({ error: msg }, { status: 500 });
   }
-}
-
-export function buildInvitation(template: string, lead: { name: string; company: string; title: string }): string {
-  const trimmedTemplate = template.slice(0, 300); // LinkedIn limit
-  return trimmedTemplate
-    .replace(/{{\s*navn\s*}}/gi, lead.name || 'der')
-    .replace(/{{\s*virksomhed\s*}}/gi, lead.company || '')
-    .replace(/{{\s*titel\s*}}/gi, lead.title || '');
 }

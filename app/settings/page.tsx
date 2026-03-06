@@ -136,7 +136,7 @@ export default function SettingsPage() {
 
         <section className="card">
           <h3 className="section-title">💬 Connection request besked</h3>
-          <p className="section-sub">Brug {{'{{navn}}'}} og {{'{{virksomhed}}'}} i skabelonen.</p>
+          <p className="section-sub">Brug {'{{navn}}'} og {'{{virksomhed}}'} i skabelonen.</p>
           <textarea
             rows={4}
             maxLength={300}
@@ -195,7 +195,7 @@ export default function SettingsPage() {
             </>
           ) : (
             <>
-              <label>Manuel DM (brug {{'{{navn}}'}}, {{'{{titel}}'}}, {{'{{virksomhed}}'}})</label>
+              <label>Manuel DM (brug {'{{navn}}'}, {'{{titel}}'}, {'{{virksomhed}}'})</label>
               <textarea
                 rows={4}
                 value={settings.manual_outreach_message}

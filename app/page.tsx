@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import styles from './page.module.css';
-import db from '@/lib/db';
+import db, { ensureSchema } from '@/lib/db';
 import ManualConnect from './components/ManualConnect';
 
 export const dynamic = 'force-dynamic';
@@ -19,6 +19,7 @@ async function getStats() {
   }
   const sql = db();
   try {
+    await ensureSchema();
     const totalRows = await sql`SELECT COUNT(*) AS count FROM leads`;
     const total = Number(totalRows[0]?.count ?? 0);
 

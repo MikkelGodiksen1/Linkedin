@@ -1,14 +1,15 @@
-import { neon } from '@neondatabase/serverless';
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
 
-export default function db() {
-  const url = process.env.DATABASE_URL || process.env.Database_Url;
-  if (!url) {
-    throw new Error('DATABASE_URL is not set');
+import { NextResponse } from 'next/server';
+import db from '@/lib/db';
+
+export async function POST(req: Request) {
+  const secret = req.headers.get('authorization')?.replace('Bearer ', '');
+  if (secret !== process.env.CRON_SECRET) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
-  return neon(url);
-}
 
-export async function ensureSchema() {
   const sql = db();
 
   await sql`
@@ -57,4 +58,6 @@ export async function ensureSchema() {
       ('linkedin_li_at',         '')
     ON CONFLICT (key) DO NOTHING
   `;
+
+  return NextResponse.json({ ok: true, message: 'Database initialized' });
 }

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import sql from '@/lib/db';
+import db from '@/lib/db';
 import { harvestSearchResults, launchSearchExport } from '@/lib/phantombuster';
 
 function verifyAuth(request: Request): boolean {
@@ -16,6 +16,8 @@ export async function GET(request: Request) {
   if (!verifyAuth(request)) {
     return new Response('Unauthorized', { status: 401 });
   }
+
+  const sql = db();
 
   // ── Step 1: Harvest gårsdagens søgeresultater ─────────────────────────────
   const leads = await harvestSearchResults();
